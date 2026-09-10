@@ -2,9 +2,10 @@ import logging
 import os
 from datetime import timedelta
 from pathlib import Path
+from urllib.parse import quote_plus
 
 from dotenv import load_dotenv
-from flask import Flask, jsonify
+from flask import Flask, jsonify, send_from_directory
 from flask_jwt_extended import JWTManager
 
 from .models import db
@@ -15,8 +16,8 @@ def create_app(test_config=None):
     app = Flask(__name__)
     app.config.from_mapping(
         SQLALCHEMY_DATABASE_URI=(
-            f"mysql+pymysql://{os.getenv('DATABASE_USER', 'root')}:"
-            f"{os.getenv('DATABASE_PASSWORD', '')}@{os.getenv('DATABASE_HOST', 'localhost')}:"
+            f"mysql+pymysql://{quote_plus(os.getenv('DATABASE_USER', 'root'))}:"
+            f"{quote_plus(os.getenv('DATABASE_PASSWORD', ''))}@{os.getenv('DATABASE_HOST', 'localhost')}:"
             f"{os.getenv('DATABASE_PORT', '3306')}/{os.getenv('DATABASE_NAME', 'ticket_booking')}"
         ),
         SQLALCHEMY_TRACK_MODIFICATIONS=False,
@@ -37,6 +38,7 @@ def create_app(test_config=None):
     app.register_blueprint(auth_bp, url_prefix="/api/auth")
     app.register_blueprint(events_bp, url_prefix="/api")
     app.register_blueprint(bookings_bp, url_prefix="/api/bookings")
+    frontend_dir = Path(__file__).resolve().parents[2] / "frontend"
 
     # The frontend is intentionally static and may be served from another local port.
     @app.after_request
@@ -49,5 +51,14 @@ def create_app(test_config=None):
     @app.get("/health")
     def health():
         return jsonify(status="healthy")
+
+    @app.get("/")
+    def frontend_home():
+        return send_from_directory(frontend_dir, "index.html")
+
+    @app.get("/<path:filename>")
+    def frontend_files(filename):
+        """Serve the plain HTML, CSS, and JavaScript frontend during local development."""
+        return send_from_directory(frontend_dir, filename)
 
     return app
