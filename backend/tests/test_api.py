@@ -39,6 +39,9 @@ def test_booking_availability_and_cancellation(app, client):
         event=Event(**{**event_data(), 'event_date':date(2030,1,20), 'event_time':time(19,30)}); db.session.add(event); db.session.flush()
         ticket=TicketType(event_id=event.id,name='VIP',price=50,total_quantity=5,available_quantity=5); db.session.add(ticket); db.session.commit(); tid=ticket.id
     response=client.post('/api/bookings',json={'event_id':1,'items':[{'ticket_type_id':tid,'quantity':3}]},headers=headers(token)); assert response.status_code==201
+    bookings = client.get('/api/bookings', headers=headers(token))
+    assert bookings.status_code == 200
+    assert len(bookings.get_json()['bookings']) == 1
     assert client.post('/api/bookings',json={'event_id':1,'items':[{'ticket_type_id':tid,'quantity':3}]},headers=headers(token)).status_code==409
     booking_id=response.get_json()['booking']['id']; assert client.post(f'/api/bookings/{booking_id}/cancel',headers=headers(token)).status_code==200
     with app.app_context(): assert db.session.get(TicketType,tid).available_quantity==5

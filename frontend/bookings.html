@@ -1,1 +1,48 @@
-<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>My bookings</title><link rel="stylesheet" href="css/styles.css"></head><body><nav id="nav"></nav><main><h1>My bookings</h1><div id="message"></div><section id="list" class="grid"></section></main><script src="js/app.js"></script><script>async function load(){if(!token()){location='login.html';return}try{let b=(await api('/bookings')).bookings;list.innerHTML=b.map(x=>`<article class="card"><h3>${x.event.title}</h3><p>${x.items.map(i=>`${i.quantity} × ${i.ticket_type}`).join(', ')}</p><p><b>$${x.total_amount.toFixed(2)}</b> · ${x.status}</p>${x.status==='confirmed'?`<button class="danger" onclick="cancel(${x.id})">Cancel booking</button>`:''}</article>`).join('')||'<p>No bookings yet.</p>'}catch(e){showError(e)}}async function cancel(id){try{await api('/bookings/'+id+'/cancel',{method:'POST'});load()}catch(e){showError(e)}}load()</script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>My Bookings — Ticketly</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <nav id="nav"></nav>
+  <main>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2rem;flex-wrap:wrap;gap:1rem">
+      <h1 style="margin:0">My bookings</h1>
+      <a class="button" href="events.html" style="border-radius:100px;padding:.6rem 1.25rem;font-size:.85rem">Find more events</a>
+    </div>
+    <div id="message"></div>
+    <div id="list" class="booking-list"></div>
+  </main>
+  <script src="js/app.js"></script>
+  <script>
+    async function load() {
+      if (!user()) { location.href = 'login.html'; return; }
+      const list = document.querySelector('#list');
+      try {
+        const { bookings } = await api('/bookings');
+        if (!bookings.length) {
+          list.innerHTML = `<div class="empty"><h3>No bookings yet</h3><p>When you book tickets, they will show up here.</p><a class="button" href="events.html">Browse events</a></div>`;
+          return;
+        }
+        list.innerHTML = bookings.map(booking => `
+          <article class="booking-item">
+            <div class="booking-date-box"><span class="bday">${fmtDate(booking.event.event_date)}</span></div>
+            <div class="booking-info">
+              <h3>${booking.event.title}</h3>
+              <div class="meta">
+                <span>${fmtTime(booking.event.event_time)} · ${booking.event.location}</span>
+                <span>${booking.items.map(item => `${item.ticket_type} ×${item.quantity}`).join(', ')}</span>
+              </div>
+              <p class="muted">Status: ${booking.status}</p>
+            </div>
+            <div class="booking-total"><strong>$${Number(booking.total_amount).toFixed(2)}</strong><span>total</span></div>
+          </article>`).join('');
+      } catch (error) { showError(error); }
+    }
+    document.addEventListener('DOMContentLoaded', load);
+  </script>
+</body>
+</html>

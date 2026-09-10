@@ -1,1 +1,62 @@
-<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Ticketly</title><link rel="stylesheet" href="css/styles.css"></head><body><nav id="nav"></nav><main><section class="hero"><h1>Find your next great event.</h1><p>Simple ticket booking for events worth attending.</p><a class="button" href="events.html">Browse events</a></section></main><script src="js/app.js"></script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Ticketly — Find your next event</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <nav id="nav"></nav>
+  <main>
+
+    <!-- HERO -->
+    <section class="hero">
+      <div class="hero-bg"></div>
+      <div class="hero-grid"></div>
+      <div class="hero-content">
+        <div class="hero-eyebrow">Live events near you</div>
+        <h1>Find your next great event.</h1>
+        <p>Simple, fast ticket booking for concerts, conferences, and experiences worth attending.</p>
+        <div class="hero-actions">
+          <a class="button btn-dark" href="events.html" style="background:#fff;color:var(--ink)">Browse events →</a>
+          <a class="button btn-outline" href="register.html">Sign up free</a>
+        </div>
+      </div>
+      <div class="hero-stats">
+        <div class="hero-stat"><strong>500+</strong><span>Events listed</span></div>
+        <div class="hero-stat"><strong>12k+</strong><span>Tickets sold</span></div>
+        <div class="hero-stat"><strong>98%</strong><span>Happy attendees</span></div>
+      </div>
+    </section>
+
+    <!-- FEATURED / UPCOMING -->
+    <div class="section-header">
+      <h2>Upcoming events</h2>
+      <a href="events.html">See all events →</a>
+    </div>
+    <div id="message"></div>
+    <section id="events" class="grid">
+      <p class="muted">Loading events…</p>
+    </section>
+
+  </main>
+  <script src="js/app.js"></script>
+  <script>
+    async function load() {
+      try {
+        const { events } = await api('/events');
+        const el = document.querySelector('#events');
+        if (!events.length) {
+          el.innerHTML = `<div class="empty"><div class="empty-icon">🎟️</div><h3>No events yet</h3><p>Check back soon — events are on their way.</p></div>`;
+          return;
+        }
+        // First one is featured, rest are normal cards
+        const [first, ...rest] = events.slice(0, 7);
+        el.innerHTML = eventCard(first, true) + rest.map(e => eventCard(e)).join('');
+      } catch(e) { showError(e); }
+    }
+    document.addEventListener('DOMContentLoaded', load);
+  </script>
+</body>
+</html>

@@ -1,1 +1,87 @@
-<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Event details</title><link rel="stylesheet" href="css/styles.css"></head><body><nav id="nav"></nav><main><div id="message"></div><section id="detail" class="card"></section></main><script src="js/app.js"></script><script>const id=new URLSearchParams(location.search).get('id');async function load(){try{const e=(await api('/events/'+id)).event;detail.innerHTML=`<h1>${e.title}</h1><p class="muted">${e.category} · ${e.event_date} at ${e.event_time}</p><p>${e.location}</p><p>${e.description}</p><h2>Tickets</h2>${e.ticket_types.map(t=>`<div class="ticket"><b>${t.name}</b> — $${t.price.toFixed(2)} <span class="muted">(${t.available_quantity} left)</span><input class="qty" data-id="${t.id}" type="number" min="0" max="${t.available_quantity}" value="0"></div>`).join('')||'<p class="muted">Tickets are not available for this event yet.</p>'}<p><button onclick="book()">Book selected tickets</button></p>`}catch(e){showError(e)}}async function book(){if(!token()){location='login.html';return}let items=[...document.querySelectorAll('.qty')].map(x=>({ticket_type_id:+x.dataset.id,quantity:+x.value})).filter(x=>x.quantity>0);if(!items.length){showError({message:'Choose at least one ticket quantity before booking.'});return}try{await api('/bookings',{method:'POST',body:JSON.stringify({event_id:+id,items})});location='bookings.html'}catch(e){showError(e)}}load()</script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Event details — Ticketly</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <nav id="nav"></nav>
+  <main>
+    <a href="events.html" style="display:inline-flex;align-items:center;gap:.4rem;font-size:.85rem;color:var(--muted);margin-bottom:1.5rem;font-weight:500">← Back to events</a>
+    <div id="message"></div>
+    <div id="detail"></div>
+  </main>
+  <script src="js/app.js"></script>
+  <script>
+    const id = new URLSearchParams(location.search).get('id');
+
+    async function load() {
+      if (!id) { showError({ message: 'No event specified.' }); return; }
+      try {
+        const [eventResponse, ticketResponse] = await Promise.all([
+          api(`/events/${id}`),
+          api(`/events/${id}/tickets`),
+        ]);
+        const ev = eventResponse.event;
+        const tickets = ticketResponse.ticket_types;
+        document.title = `${ev.title} — Ticketly`;
+
+        const imgHtml = ev.image_url
+          ? `<img class="detail-hero-img" src="${ev.image_url}" alt="${ev.title}">`
+          : `<div class="detail-hero-img" style="display:flex;align-items:center;justify-content:center;font-size:4rem;background:var(--surface2)">${categoryEmoji(ev.category)}</div>`;
+
+        const ticketHtml = tickets.length
+          ? tickets.map(t => `
+            <div class="ticket-row">
+              <h4>${t.name}</h4>
+              <p>${t.description || 'Standard entry'} · <strong>${t.available_quantity ?? t.total_quantity}</strong> remaining</p>
+              <div class="ticket-row-foot">
+                <span class="ticket-price">$${Number(t.price).toFixed(2)} <span>/ ticket</span></span>
+                <button onclick="book(${t.id}, '${t.name}')" class="button" style="border-radius:100px;padding:.55rem 1.2rem;font-size:.85rem">Book now</button>
+              </div>
+            </div>`).join('')
+          : `<p class="muted" style="text-align:center;padding:1.5rem 0">No tickets available.</p>`;
+
+        document.querySelector('#detail').innerHTML = `
+          <div class="detail-layout">
+            <div class="detail-main">
+              ${imgHtml}
+              <div class="detail-meta-row">
+                <span class="detail-chip">🎫 ${ev.category}</span>
+                <span class="detail-chip">📅 ${fmtDate(ev.event_date)}</span>
+                <span class="detail-chip">🕐 ${fmtTime(ev.event_time)}</span>
+                <span class="detail-chip">📍 ${ev.location}</span>
+              </div>
+              <h1 style="margin-bottom:1.25rem">${ev.title}</h1>
+              <p class="detail-body">${ev.description}</p>
+            </div>
+            <div class="detail-sidebar">
+              <div class="sidebar-card">
+                <h3>Get tickets</h3>
+                ${ticketHtml}
+              </div>
+            </div>
+          </div>`;
+      } catch(e) { showError(e); }
+    }
+
+    async function book(ticketTypeId, name) {
+      if (!user()) { location.href = 'login.html'; return; }
+      const qty = parseInt(prompt(`How many "${name}" tickets?`, '1'), 10);
+      if (!qty || qty < 1) return;
+      try {
+        await api('/bookings', { method: 'POST', body: JSON.stringify({
+          event_id: Number(id),
+          items: [{ ticket_type_id: ticketTypeId, quantity: qty }],
+        }) });
+        showMessage(`🎉 Booked ${qty} ticket${qty > 1 ? 's' : ''}! Check "My Bookings".`, false);
+        load();
+      } catch(e) { showError(e); }
+    }
+
+    document.addEventListener('DOMContentLoaded', load);
+  </script>
+</body>
+</html>

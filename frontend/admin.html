@@ -1,132 +1,215 @@
 <!doctype html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Admin dashboard</title><link rel="stylesheet" href="css/styles.css">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Admin — Ticketly</title>
+  <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
   <nav id="nav"></nav>
   <main>
-    <h1>Admin dashboard</h1>
+    <div style="margin-bottom:2.5rem">
+      <h1 style="margin-bottom:.25rem">Admin dashboard</h1>
+      <p class="muted" style="font-size:.92rem">Manage events, tickets and bookings.</p>
+    </div>
+
+    <!-- Stats -->
+    <div class="admin-grid" id="statsRow">
+      <div class="stat-card"><div class="stat-icon brand">🗓️</div><div><div class="stat-num" id="sEvents">—</div><div class="stat-label">Total events</div></div></div>
+      <div class="stat-card"><div class="stat-icon accent">🎟️</div><div><div class="stat-num" id="sBookings">—</div><div class="stat-label">Total bookings</div></div></div>
+    </div>
+
     <div id="message"></div>
 
+    <!-- Create / Edit Event -->
     <form id="eventForm">
-      <div class="row"><h2 id="eventFormTitle">Create event</h2><button id="cancelEdit" class="hidden" type="button" onclick="resetEventForm()">Cancel edit</button></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem">
+        <h2 id="eventFormTitle" style="font-size:1.15rem;margin:0">Create event</h2>
+        <button id="cancelEdit" class="hidden button btn-ghost" type="button" onclick="resetEventForm()" style="border-radius:100px;padding:.5rem 1rem;font-size:.82rem">✕ Cancel edit</button>
+      </div>
       <div class="row">
-        <p><label>Title</label><input name="title" required></p>
-        <p><label>Category</label><input name="category" required></p>
-        <p><label>Location</label><input name="location" required></p>
+        <p><label>Title</label><input name="title" required placeholder="Event name"></p>
+        <p><label>Category</label><input name="category" required placeholder="Music, Tech…"></p>
+        <p><label>Location</label><input name="location" required placeholder="Venue or city"></p>
       </div>
       <div class="row">
         <p><label>Date</label><input name="event_date" type="date" required></p>
         <p><label>Time</label><input name="event_time" type="time" required></p>
-        <p><label>Image URL (optional)</label><input name="image_url"></p>
+        <p><label>Image URL</label><input name="image_url" placeholder="https://…"></p>
       </div>
-      <label>Description</label><textarea name="description" required></textarea>
-      <p><button id="eventSubmit">Create event</button></p>
+      <label>Description</label>
+      <textarea name="description" required placeholder="Describe the event…"></textarea>
+      <div style="margin-top:1.5rem">
+        <button id="eventSubmit" style="border-radius:100px">Create event →</button>
+      </div>
     </form>
 
-    <h2>Event management</h2>
-    <section id="events" class="grid"></section>
+    <!-- Events table -->
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+      <h2 style="font-size:1.1rem">Event management</h2>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Title</th><th>Category</th><th>Date</th><th>Location</th><th>Actions</th></tr></thead>
+        <tbody id="eventsTable"><tr><td colspan="5" class="muted" style="padding:2rem;text-align:center">Loading…</td></tr></tbody>
+      </table>
+    </div>
 
+    <!-- Ticket type form -->
     <form id="ticketForm">
-      <h2>Create ticket type</h2>
+      <h2 style="font-size:1.15rem;margin-bottom:1.5rem;margin-top:0">Create ticket type</h2>
       <div class="row">
         <p><label>Event</label><select id="ticketEvent" required></select></p>
         <p><label>Ticket name</label><input name="name" placeholder="General Admission" required></p>
-        <p><label>Price</label><input name="price" type="number" min="0" step="0.01" required></p>
-        <p><label>Total quantity</label><input name="total_quantity" type="number" min="0" required></p>
+        <p><label>Price ($)</label><input name="price" type="number" min="0" step="0.01" required placeholder="0.00"></p>
+        <p><label>Quantity</label><input name="total_quantity" type="number" min="1" required placeholder="100"></p>
       </div>
-      <label>Description (optional)</label><textarea name="description"></textarea>
-      <p><button>Create ticket type</button></p>
+      <label>Description (optional)</label>
+      <textarea name="description" placeholder="What's included…"></textarea>
+      <div style="margin-top:1.5rem"><button style="border-radius:100px">Create ticket type →</button></div>
     </form>
 
-    <h2 id="ticketsTitle">Tickets</h2>
-    <section id="tickets" class="grid"><p class="muted">Choose an event above to view its ticket types.</p></section>
+    <!-- Tickets for selected event -->
+    <h2 id="ticketsTitle" style="margin-bottom:1rem;font-size:1.1rem">Ticket types</h2>
+    <div id="tickets" style="margin-bottom:2.5rem">
+      <p class="muted" style="font-size:.9rem">Select an event above to view its ticket types.</p>
+    </div>
 
-    <h2>All bookings</h2>
-    <section id="bookings" class="grid"></section>
+    <!-- All bookings table -->
+    <h2 style="margin-bottom:1rem;font-size:1.1rem">All bookings</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>User</th><th>Event</th><th>Ticket</th><th>Qty</th><th>Date</th></tr></thead>
+        <tbody id="bookingsTable"><tr><td colspan="5" class="muted" style="padding:2rem;text-align:center">Loading…</td></tr></tbody>
+      </table>
+    </div>
   </main>
+
   <script src="js/app.js"></script>
   <script>
-    if (!user() || user().role !== 'admin') location = 'login.html';
-    let editingEventId = null;
+    let editId = null;
 
-    function payload(form) { return Object.fromEntries(new FormData(form)); }
+    async function loadEvents() {
+      const { events } = await api('/events');
+      document.querySelector('#sEvents').textContent = events.length;
+
+      const tb = document.querySelector('#eventsTable');
+      tb.innerHTML = events.length
+        ? events.map(e => `
+          <tr>
+            <td style="font-weight:600">${e.title}</td>
+            <td><span class="badge">${e.category}</span></td>
+            <td>${fmtDate(e.event_date)}</td>
+            <td>${e.location}</td>
+            <td>
+              <div style="display:flex;gap:.5rem">
+                <button onclick='startEdit(${JSON.stringify(e)})' class="btn-ghost button" style="padding:.4rem .85rem;font-size:.78rem;border-radius:100px">Edit</button>
+                <button class="danger button" onclick="deleteEvent(${e.id})" style="padding:.4rem .85rem;font-size:.78rem;border-radius:100px">Delete</button>
+              </div>
+            </td>
+          </tr>`).join('')
+        : `<tr><td colspan="5" class="muted" style="padding:2rem;text-align:center">No events yet.</td></tr>`;
+
+      const sel = document.querySelector('#ticketEvent');
+      sel.innerHTML = events.map(e => `<option value="${e.id}">${e.title}</option>`).join('');
+    }
+
+    async function loadBookings() {
+      try {
+        const { bookings } = await api('/bookings');
+        document.querySelector('#sBookings').textContent = bookings.length;
+        const tb = document.querySelector('#bookingsTable');
+        tb.innerHTML = bookings.length
+          ? bookings.map(b => `
+            <tr>
+              <td>${b.user_name || b.user_email || '—'}</td>
+              <td style="font-weight:600">${b.event.title}</td>
+              <td>${b.items.map(item => item.ticket_type).join(', ')}</td>
+              <td><span class="badge orange">×${b.items.reduce((total, item) => total + item.quantity, 0)}</span></td>
+              <td>${fmtDate(b.created_at)}</td>
+            </tr>`).join('')
+          : `<tr><td colspan="5" class="muted" style="padding:2rem;text-align:center">No bookings yet.</td></tr>`;
+      } catch(_) {}
+    }
+
+    function startEdit(e) {
+      editId = e.id;
+      document.querySelector('#eventFormTitle').textContent = 'Edit event';
+      document.querySelector('#eventSubmit').textContent = 'Save changes →';
+      document.querySelector('#cancelEdit').classList.remove('hidden');
+      const form = document.querySelector('#eventForm');
+      Object.entries(e).forEach(([k, v]) => { const i = form.querySelector(`[name="${k}"]`); if (i) i.value = v || ''; });
+      form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
     function resetEventForm() {
-      editingEventId = null; eventForm.reset();
-      eventFormTitle.textContent = 'Create event'; eventSubmit.textContent = 'Create event';
-      cancelEdit.classList.add('hidden');
+      editId = null;
+      document.querySelector('#eventFormTitle').textContent = 'Create event';
+      document.querySelector('#eventSubmit').textContent = 'Create event →';
+      document.querySelector('#cancelEdit').classList.add('hidden');
+      document.querySelector('#eventForm').reset();
     }
 
-    eventForm.onsubmit = async event => {
-      event.preventDefault();
+    async function deleteEvent(id) {
+      if (!confirm('Delete this event? This cannot be undone.')) return;
+      try { await api(`/events/${id}`, { method: 'DELETE' }); showMessage('Event deleted.', false); loadEvents(); }
+      catch(e) { showError(e); }
+    }
+
+    document.querySelector('#eventForm').addEventListener('submit', async e => {
+      e.preventDefault();
+      const fd = Object.fromEntries(new FormData(e.target));
       try {
-        const path = editingEventId ? '/events/' + editingEventId : '/events';
-        const method = editingEventId ? 'PUT' : 'POST';
-        await api(path, {method, body: JSON.stringify(payload(eventForm))});
-        resetEventForm(); await load();
-      } catch (error) { showError(error); }
-    };
+        if (editId) {
+          await api(`/events/${editId}`, { method: 'PUT', body: JSON.stringify(fd) });
+          showMessage('Event updated.', false);
+        } else {
+          await api('/events', { method: 'POST', body: JSON.stringify(fd) });
+          showMessage('Event created.', false);
+        }
+        resetEventForm(); loadEvents();
+      } catch(err) { showError(err); }
+    });
 
-    async function editEvent(id) {
+    document.querySelector('#ticketForm').addEventListener('submit', async e => {
+      e.preventDefault();
+      const fd = Object.fromEntries(new FormData(e.target));
+      fd.event_id = document.querySelector('#ticketEvent').value;
       try {
-        const event = (await api('/events/' + id)).event;
-        editingEventId = id;
-        for (const key of ['title','category','location','event_date','event_time','image_url','description']) eventForm.elements[key].value = event[key] || '';
-        eventFormTitle.textContent = 'Edit event'; eventSubmit.textContent = 'Save changes';
-        cancelEdit.classList.remove('hidden'); eventForm.scrollIntoView({behavior:'smooth'});
-      } catch (error) { showError(error); }
-    }
+        const eventId = fd.event_id;
+        delete fd.event_id;
+        await api(`/events/${eventId}/tickets`, { method: 'POST', body: JSON.stringify(fd) });
+        showMessage('Ticket type created.', false);
+        e.target.reset();
+        loadEvents();
+      }
+      catch(err) { showError(err); }
+    });
 
-    async function cancelEvent(id) {
-      if (!confirm('Cancel this event? It will no longer be available for new bookings.')) return;
-      try { await api('/events/' + id, {method:'DELETE'}); await load(); } catch (error) { showError(error); }
-    }
-
-    ticketForm.onsubmit = async event => {
-      event.preventDefault();
+    document.querySelector('#ticketEvent').addEventListener('change', async function() {
+      const id = this.value; if (!id) return;
       try {
-        const eventId = ticketEvent.value;
-        await api('/events/' + eventId + '/tickets', {method:'POST', body:JSON.stringify(payload(ticketForm))});
-        ticketForm.reset(); ticketEvent.value = eventId; await loadTickets(eventId); await load();
-      } catch (error) { showError(error); }
-    };
+        const { ticket_types: tickets } = await api(`/events/${id}/tickets`);
+        document.querySelector('#tickets').innerHTML = tickets.length
+          ? `<div class="table-wrap"><table>
+              <thead><tr><th>Name</th><th>Price</th><th>Available</th><th>Total</th></tr></thead>
+              <tbody>${tickets.map(t => `<tr>
+                <td style="font-weight:600">${t.name}</td>
+                <td>$${Number(t.price).toFixed(2)}</td>
+                <td><span class="badge green">${t.available_quantity ?? t.total_quantity}</span></td>
+                <td>${t.total_quantity}</td>
+              </tr>`).join('')}</tbody>
+            </table></div>`
+          : `<p class="muted" style="font-size:.9rem">No ticket types for this event yet.</p>`;
+      } catch(e) { showError(e); }
+    });
 
-    ticketEvent.onchange = () => loadTickets(ticketEvent.value);
-    async function loadTickets(eventId) {
-      if (!eventId) return;
-      try {
-        const event = (await api('/events/' + eventId)).event;
-        ticketsTitle.textContent = 'Tickets — ' + event.title;
-        tickets.innerHTML = event.ticket_types.map(ticket => `
-          <form class="card" onsubmit="updateTicket(event, ${event.id}, ${ticket.id}, this)">
-            <h3>Edit ${ticket.name}</h3>
-            <label>Name</label><input name="name" value="${ticket.name}" required>
-            <label>Description</label><input name="description" value="${ticket.description || ''}">
-            <div class="row"><p><label>Price</label><input name="price" type="number" min="0" step="0.01" value="${ticket.price}" required></p><p><label>Total quantity</label><input name="total_quantity" type="number" min="0" value="${ticket.total_quantity}" required></p></div>
-            <p class="muted">Available: ${ticket.available_quantity}</p><button>Save ticket</button>
-          </form>`).join('') || '<p class="muted">No ticket types for this event yet.</p>';
-      } catch (error) { showError(error); }
-    }
-
-    async function updateTicket(event, eventId, ticketId, form) {
-      event.preventDefault();
-      try { await api('/events/' + eventId + '/tickets/' + ticketId, {method:'PUT', body:JSON.stringify(payload(form))}); await loadTickets(eventId); }
-      catch (error) { showError(error); }
-    }
-
-    async function load() {
-      try {
-        const allEvents = (await api('/events')).events;
-        ticketEvent.innerHTML = allEvents.map(event => `<option value="${event.id}">${event.title}</option>`).join('');
-        events.innerHTML = allEvents.map(event => `<article class="card"><h3>${event.title}</h3><p class="muted">${event.event_date} · ${event.location}</p><p>Status: ${event.status}</p><button onclick="editEvent(${event.id})">Edit</button> <button class="danger" onclick="cancelEvent(${event.id})">Cancel event</button> <p><button onclick="ticketEvent.value=${event.id};loadTickets(${event.id})">Manage tickets</button></p></article>`).join('') || '<p>No events yet.</p>';
-        const allBookings = (await api('/bookings')).bookings;
-        bookings.innerHTML = allBookings.map(booking => `<article class="card"><b>${booking.event.title}</b><p>${booking.event.location} · $${booking.total_amount.toFixed(2)}</p><p>${booking.status}</p></article>`).join('') || '<p>No bookings yet.</p>';
-        if (ticketEvent.value) await loadTickets(ticketEvent.value);
-      } catch (error) { showError(error); }
-    }
-    load();
+    document.addEventListener('DOMContentLoaded', async () => {
+      if (!user() || user().role !== 'admin') { location.href = 'index.html'; return; }
+      await loadEvents();
+      await loadBookings();
+    });
   </script>
 </body>
 </html>

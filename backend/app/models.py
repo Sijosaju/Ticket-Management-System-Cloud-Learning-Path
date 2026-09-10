@@ -66,7 +66,7 @@ class Booking(db.Model):
     event = db.relationship("Event")
     items = db.relationship("BookingItem", back_populates="booking", cascade="all, delete-orphan")
 
-    def public(self): return {"id": self.id, "event": self.event.public(), "total_amount": float(self.total_amount), "status": self.status, "created_at": self.created_at.isoformat(), "items": [item.public() for item in self.items]}
+    def public(self): return {"id": self.id, "event": self.event.public(), "user_name": self.user.name, "user_email": self.user.email, "total_amount": float(self.total_amount), "status": self.status, "created_at": self.created_at.isoformat(), "items": [item.public() for item in self.items]}
 
 
 class BookingItem(db.Model):
