@@ -1,4 +1,4 @@
-const API = 'http://localhost:5000/api';
+const API = window.APP_CONFIG.API_URL;
 const token = () => localStorage.getItem('token');
 const user  = () => JSON.parse(localStorage.getItem('user') || 'null');
 
